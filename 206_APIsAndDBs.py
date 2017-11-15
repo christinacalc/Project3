@@ -74,13 +74,25 @@ def get_user_tweets(user):
 		fw.close() # Close the open file
 		return x
         
+def get_mentions_info(user):
+	if user in CACHE_DICTION:
+	print("Using cache"+"\n")
+		return CACHE_DICTION[user]
+	else:
+	print("Fetching..."+"\n")
+		x= api.get_user(user) #using tweepy and search method to retrieve twitter data
+		CACHE_DICTION[user] =  x #preparing to dump data into json object
+		dumped_cache= json.dumps(CACHE_DICTION)
+		fw = open(CACHE_FNAME,"w") #writing cache file 
+		fw.write(dumped_cache) #putting data into the cache file
+		fw.close() # Close the open file
+		return x
 
 
 # Write an invocation to the function for the "umich" user timeline and 
 # save the result in a variable called umich_tweets:
 
-umich_tweets= get_user_tweets('umich')
-
+umich_tweets= get_user_tweets('@umich')
 
 ## Task 2 - Creating database and loading data into database
 
@@ -94,26 +106,23 @@ umich_tweets= get_user_tweets('umich')
 conn= sqlite3.connect("206_APIsAndDBs.sqlite")
 cur= conn.cursor()
 
-cur.execute('DROP TABLE IF EXISTS Tweets')
-cur.execute('CREATE TABLE Tweets (tweet_id TEXT, text TEXT, user_posted TEXT, time_posted TIMESTAMP, retweets NUMBER)')
 
+cur.execute('DROP TABLE IF EXISTS Users')
+cur.execute('CREATE TABLE Users (user_id TEXT NOT NULL PRIMARY KEY, screen_name TEXT, num_favs NUMBER, description TEXT)')
+
+cur.execute('DROP TABLE IF EXISTS Tweets')
+cur.execute('CREATE TABLE Tweets (tweet_id TEXT PRIMARY KEY, text TEXT, user_posted TEXT, time_posted TIMESTAMP, retweets NUMBER, FOREIGN KEY(user_posted) REFERENCES Users(user_id))')
 
 for tweet in umich_tweets:
 	tweettup= tweet["id_str"], tweet['text'], tweet['user']['id_str'], tweet['created_at'], tweet['retweet_count']
 	cur.execute('INSERT INTO Tweets (tweet_id, text, user_posted, time_posted, retweets) VALUES (?,?,?,?,?)', tweettup)
 
-## You should load into the Tweets table: 
-# Info about all the tweets (at least 20) that you gather from the 
-# umich timeline.
-# NOTE: Be careful that you have the correct user ID reference in 
-# the user_id column! See below hints.
+	for mentions in tweet['entities']['user_mentions']:
+		new_user= mentions['screen_name']
+		new_info= get_mentions_info(new_user)
+		mentiontup= new_info["id_str"], new_info["screen_name"], new_info["favourites_count"], new_info["description"]
+		cur.execute('INSERT OR IGNORE INTO Users (user_id, screen_name, num_favs, description) VALUES (?,?,?,?)', mentiontup)
 
-cur.execute('DROP TABLE IF EXISTS Users')
-cur.execute('CREATE TABLE Users (user_id TEXT, screen_name TEXT, num_favs NUMBER, description TEXT)')
-
-for user in umich_tweets:
-	usertup= user['user']['id_str'], user['user']['screen_name'], user['user']['favourites_count'], user['user']['description']
-	cur.execute('INSERT INTO Users (user_id, screen_name, num_favs, description) VALUES (?,?,?,?)', usertup)
 
 conn.commit()
 ## HINT: There's a Tweepy method to get user info, so when you have a 
@@ -174,7 +183,7 @@ x = cur.execute('SELECT description FROM Users')
 for each in x:
 	for string in each:
 		favorites.append(string)
-print(favorites)
+
 
 # Make a query using an INNER JOIN to get a list of tuples with 2 
 # elements in each tuple: the user screenname and the text of the 
@@ -204,6 +213,8 @@ for each in data:
 ### IMPORTANT: MAKE SURE TO CLOSE YOUR DATABASE CONNECTION AT THE END 
 ### OF THE FILE HERE SO YOU DO NOT LOCK YOUR DATABASE (it's fixable, 
 ### but it's a pain). ###
+
+cur.close()
 
 ###### TESTS APPEAR BELOW THIS LINE ######
 ###### Note that the tests are necessary to pass, but not sufficient -- 
