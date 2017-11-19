@@ -166,50 +166,44 @@ for each in names:
 # Make a query to select all of the tweets (full rows of tweet information)
 # that have been retweeted more than 10 times. Save the result 
 # (a list of tuples, or an empty list) in a variable called retweets.
-retweets= []
-cur.execute('SELECT * FROM Tweets WHERE retweets > 10')  # selecting all the rows from table Tweets that have over 10 retweets 
-row= cur.fetchall() #creates a list of these rows 
 
-for tweet in row:
-	retweets.append(tweet)
+cur.execute('SELECT * FROM Tweets WHERE retweets > 10')  # selecting all the rows from table Tweets that have over 10 retweets 
+retweets= cur.fetchall() #creates a list of these rows 
+
 
 # Make a query to select all the descriptions (descriptions only) of 
 # the users who have favorited more than 500 tweets. Access all those 
 # strings, and save them in a variable called favorites, 
 # which should ultimately be a list of strings.
-favorites = []
+favorites = [] #list of descriptions (strings) from users who have favorited more than 500 tweets 
 
-x = cur.execute('SELECT description FROM Users where num_favs > 500') #selects the column that contains "description" from table users that have favorited over 500 tweets
-
-for each in x:
+cur.execute('SELECT description FROM Users where num_favs > 500') #selects the column that contains "description" from table users that have favorited over 500 tweets
+y = cur.fetchall() #creates a list of tuples 
+for each in y: #iterating through list of tuples	
 	for string in each:
-		favorites.append(string)
+		if string== "":
+			pass
+		else:
+			favorites.append(string)
+
 
 # Make a query using an INNER JOIN to get a list of tuples with 2 
 # elements in each tuple: the user screenname and the text of the 
 # tweet. Save the resulting list of tuples in a variable called joined_data.
-joined_data = []
 
 cur.execute('SELECT Users.screen_name, Tweets.text FROM Users INNER JOIN Tweets ON Users.user_id = Tweets.user_posted') #using inner join command to join the two tables 
 
-data= cur.fetchall() #creates list of the joined data
+joined_data= cur.fetchall() #creates list of the joined data and stores it in the final variable
 
-for each in data:
-	joined_data.append(each)
 
 # Make a query using an INNER JOIN to get a list of tuples with 2 
 # elements in each tuple: the user screenname and the text of the 
 # tweet in descending order based on retweets. Save the resulting 
 # list of tuples in a variable called joined_data2.
 
-joined_data2 = []
 
-cur.execute('SELECT Users.screen_name, Tweets.text FROM Users INNER JOIN Tweets ON Users.user_id = Tweets.user_posted ORDER BY Tweets.retweets') #same as above
-data= cur.fetchall()
-
-for each in data:
-	joined_data2.append(each)
-
+cur.execute('SELECT Users.screen_name, Tweets.text FROM Users INNER JOIN Tweets ON Users.user_id = Tweets.user_posted ORDER BY Tweets.retweets') #same as above but ordered by amount of highest RTs in descending order
+joined_data2= cur.fetchall() #will result in a list of tuples containing user screen name and text of the tweet that has been retweeted ordered by highest num of RTs
 
 ### IMPORTANT: MAKE SURE TO CLOSE YOUR DATABASE CONNECTION AT THE END 
 ### OF THE FILE HERE SO YOU DO NOT LOCK YOUR DATABASE (it's fixable, 
